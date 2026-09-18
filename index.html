@@ -42,8 +42,9 @@ textarea:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px #00d9ff
 .section-title.pending{color:var(--amber)}.section-title.done{color:var(--green)}
 .item{display:flex;align-items:center;gap:9px;background:linear-gradient(145deg,#141a22,#10151b);border:1px solid #242d38;
 border-left:4px solid var(--amber);border-radius:11px;padding:10px;margin-bottom:7px;transition:.2s}
-.item.done{border-left-color:var(--green);opacity:.72}.item.scan-hit{animation:hit 1.8s ease;outline:3px solid var(--scan);background:#30152a}
-@keyframes hit{0%{transform:scale(1.02);box-shadow:0 0 0 0 #ff2d9aaa}50%{box-shadow:0 0 25px 7px #ff2d9a77}100%{transform:scale(1)}}
+.item.done{border-left-color:var(--green);opacity:.72}
+.item.scan-hit{animation:hit 2s ease;outline:4px solid var(--scan);background:#30152a;box-shadow:0 0 18px 4px #ff2d9a77}
+@keyframes hit{0%{transform:scale(1.03)}50%{transform:scale(1.01)}100%{transform:scale(1)}}
 .num{min-width:32px;text-align:center;background:#202832;border-radius:7px;padding:5px 3px;color:#aab4c0;font-size:.72rem}
 .tick{width:22px;height:22px;border:2px solid #5a6572;border-radius:6px;flex:none;cursor:pointer;display:grid;place-items:center}
 .tick.checked{background:var(--green);border-color:var(--green)}.tick.checked:after{content:"✓";font-weight:900;color:#00170d}
@@ -201,9 +202,9 @@ function beep(){
   const AC=window.AudioContext||window.webkitAudioContext;
   const c=new AC(),o=c.createOscillator(),g=c.createGain();
   o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.001,c.currentTime);
-  g.gain.exponentialRampToValueAtTime(.18,c.currentTime+.02);
-  g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.32);
-  o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.34);
+  g.gain.exponentialRampToValueAtTime(.25,c.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.4);
+  o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.42);
  }catch(e){}
 }
 function openScanner(){
@@ -236,7 +237,6 @@ function cropFrame(){
  const v=$('video'),c=$('ocrCanvas');
  if(!v.videoWidth)return null;
  const w=v.videoWidth,h=v.videoHeight;
- // Match the visible plate-shaped overlay: 7% side margins, 39%-61% vertical.
  const sx=Math.round(w*.07), sy=Math.round(h*.39), sw=Math.round(w*.86), sh=Math.round(h*.22);
  c.width=sw;c.height=sh;
  const ctx=c.getContext('2d');
@@ -248,7 +248,6 @@ async function scanFrame(manual=false){
  const c=cropFrame(); if(!c)return;
  if(manual)$('scanStatus').textContent='Reading registration…';
  try{
-  // A compact crop is much faster and keeps OCR focused on the plate.
   const r=await Tesseract.recognize(c,'eng',{
     tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
     preserve_interword_spaces:'0'
@@ -257,11 +256,9 @@ async function scanFrame(manual=false){
   const candidate=extractCandidate(text);
   if(candidate){
     const match=items.find(x=>norm(x.reg)===candidate);
-    if(match){
-      highlightMatch(candidate);
-      beep();
-      $('scanStatus').innerHTML=`<strong>MATCH FOUND: ${candidate}</strong>`;
-      lastCandidate=candidate;lastCandidateAt=Date.now();
+    if(match && Date.now()-lastCandidateAt>2500){ // prevent rapid re-trigger
+      lastCandidate=candidate; lastCandidateAt=Date.now();
+      handleMatchFound(candidate);
       return;
     }
   }
@@ -270,17 +267,34 @@ async function scanFrame(manual=false){
   if(manual)$('scanStatus').textContent='OCR retry — hold the plate steady.';
  }
 }
+
+function handleMatchFound(reg){
+ // 1. Alert & sound
+ alert(`✅ MATCH FOUND: ${reg}`);
+ beep();
+ 
+ // 2. Close scanner box
+ stopCamera();
+ 
+ // 3. Highlight & scroll to matched item
+ highlightMatch(reg);
+}
+
 function extractCandidate(text){
  const n=norm(text);
  const m=n.match(/[A-Z]{2}\d{2}[A-Z0-9]{3}/);
  return m?m[0]:'';
 }
 function highlightMatch(reg){
+ // Clear any existing highlights
  document.querySelectorAll('.scan-hit').forEach(x=>x.classList.remove('scan-hit'));
+ // Find & highlight the match
  const el=document.querySelector(`.item[data-reg="${reg}"]`);
  if(!el)return;
  el.classList.add('scan-hit');
+ // Smooth scroll into view
  el.scrollIntoView({behavior:'smooth',block:'center'});
+ // Auto-remove highlight after 3 seconds
  setTimeout(()=>el.classList.remove('scan-hit'),3500);
 }
 async function scanLoop(){

@@ -69,6 +69,29 @@ box-shadow:0 0 0 999px #0006,0 0 20px #ff2d9a;pointer-events:none}
 @media(max-width:500px){body{padding:8px}.header h1{font-size:1rem}.item{padding:9px}.reg{font-size:.94rem}}
 </style>
 </head>
+<!-- ================================================== -->
+<!-- VISITOR COUNTER — BOTTOM RIGHT · NUMBERS ONLY      -->
+<!-- Copy this entire block into your HTML file         -->
+<!-- ================================================== -->
+
+<!-- STYLES → Paste inside <head> or <style> section -->
+<style>
+.visitor-counter{position:fixed;bottom:15px;right:12px;z-index:9999;font-size:1.65rem;color:#b8a0d8;font-family:'Courier New',monospace;letter-spacing:1px;opacity:.7}
+@media(max-width:600px){.visitor-counter{font-size:1.55rem;bottom:6px;right:8px}}
+</style>
+
+<!-- DISPLAY → Paste right after opening <body> tag -->
+<div class="visitor-counter" id="visitorCount">0</div>
+
+<!-- LOGIC → Paste right before closing </body> tag -->
+<script>
+(function(){const e=document.getElementById("visitorCount");const t="visitor_counter_page_001";let n=parseInt(localStorage.getItem(t)||"0",10);const o=sessionStorage.getItem(t+"_visited");if(!o){n+=1;localStorage.setItem(t,n.toString());sessionStorage.setItem(t+"_visited","true")}e.textContent=n.toLocaleString()})();
+</script>
+
+<!-- ⚠️ For different pages: change "visitor_counter_page_001" to a unique name per page -->
+<!-- ================================================== -->
+
+ 
 <body>
 
 <header class="header">

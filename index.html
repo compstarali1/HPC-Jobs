@@ -4,329 +4,514 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07090d">
-<title>Enfield Dotcom — OCR Registration Scanner</title>
-<script src="tesseract.min.js"></script>
+<title>HPC — Smart Job Scanner</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 :root{
- --bg:#07090d;--card:#11151c;--card2:#171d26;--line:#29313d;
- --text:#f5f7fa;--muted:#8f9aaa;--cyan:#00d9ff;--cyan2:#008fb0;
- --green:#16e38a;--amber:#ffb020;--red:#ff4055;--scan:#ff2d9a;
+  --bg:#07090d;--surface:#0e1219;--card:#121823;--card2:#182130;--border:#263244;
+  --text:#f5f8ff;--muted:#8f9caf;--cyan:#35d8ff;--cyan2:#087da0;--cyan-glow:rgba(53,216,255,.15);
+  --red:#ff3d67;--red2:#9e1236;--red-glow:rgba(255,61,103,.15);
+  --green:#31e58a;--green2:#087348;--green-glow:rgba(49,229,138,.15);
+  --amber:#ffc247;--amber2:#b48200;--amber-glow:rgba(255,194,71,.15);
+  --blue:#5d8cff;--blue2:#2a52be;--blue-glow:rgba(93,140,255,.15);
+  --orange:#ff8b3d;--orange2:#c55d10;--orange-glow:rgba(255,139,61,.15);
+  --purple:#a855f7;--purple2:#6b21a8;--purple-glow:rgba(168,85,247,.15);
+  --shadow-lg:0 20px 45px rgba(0,0,0,.45);--shadow-md:0 10px 25px rgba(0,0,0,.25);--shadow-sm:0 4px 12px rgba(0,0,0,.15);
+  --radius-lg:24px;--radius-md:16px;--radius-sm:10px
 }
-*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,Roboto,Arial,sans-serif}
-body{background:radial-gradient(circle at 50% -10%,#15202b 0,#07090d 45%);color:var(--text);min-height:100vh;padding:12px;max-width:760px;margin:auto}
+[data-theme=light]{
+  --bg:#eef2f7;--surface:#ffffff;--card:#ffffff;--card2:#f2f5f9;--border:#d8e0ea;
+  --text:#101722;--muted:#637083;--cyan:#008fc2;--cyan2:#006582;--cyan-glow:rgba(0,143,194,.1);
+  --red:#e62f57;--red2:#9b1737;--red-glow:rgba(230,47,87,.1);
+  --green:#07985a;--green2:#056b40;--green-glow:rgba(7,152,90,.1);
+  --amber:#c98200;--amber2:#9a6400;--amber-glow:rgba(201,130,0,.1);
+  --blue:#285ed0;--blue2:#1e47a0;--blue-glow:rgba(40,94,208,.1);
+  --orange:#db5e10;--orange2:#b04a0a;--orange-glow:rgba(219,94,16,.1);
+  --purple:#9333ea;--purple2:#7c22c7;--purple-glow:rgba(147,51,234,.1);
+  --shadow-lg:0 18px 40px rgba(26,40,60,.18);--shadow-md:0 10px 24px rgba(26,40,60,.12);--shadow-sm:0 4px 14px rgba(26,40,60,.08)
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0%,rgba(53,216,255,.08),transparent 45%),radial-gradient(circle at 80% 10%,rgba(168,85,247,.06),transparent 40%),var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.5}
+body{max-width:920px;margin:0 auto;padding:16px;padding-bottom:120px;animation:fadeIn .6s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 button,input,textarea{font:inherit}
-.header{position:relative;padding:17px 58px 16px 16px;border:1px solid #24303b;border-radius:16px;
- background:linear-gradient(145deg,#101923,#0a0d12);box-shadow:0 8px 28px #0008;margin-bottom:12px}
-.header h1{font-size:1.08rem;color:var(--cyan);margin-bottom:3px}
-.header p{font-size:.76rem;color:var(--muted)}
-.header .badge{position:absolute;right:12px;top:12px;border:1px solid #33404d;border-radius:10px;padding:6px 8px;font-size:.68rem;color:#b7c1cd}
-.top-reset{position:absolute;right:12px;top:12px;z-index:5;background:linear-gradient(145deg,#555e69,#303740);border:1px solid #66717d;color:#fff;border-radius:8px;padding:6px 9px;font-size:.65rem;font-weight:900;cursor:pointer;box-shadow:0 3px 0 #0008}
-.top-reset:active{transform:translateY(1px)}
-.panel{background:linear-gradient(145deg,#121820,#0e1218);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:12px;box-shadow:0 6px 20px #0006}
-.panel-title{font-size:.86rem;color:#dce3ea;margin-bottom:9px;font-weight:700}
-textarea{width:100%;height:120px;resize:vertical;background:#080b10;border:1px solid #27303a;color:#fff;border-radius:10px;padding:11px;outline:none;font-size:.86rem}
-textarea:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px #00d9ff22}
-.row{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
-.btn{border:0;border-radius:10px;padding:11px 13px;color:white;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #0008,0 7px 18px #0006}
-.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #0008}
-.primary{background:linear-gradient(145deg,#00c8ed,#007d9b)}
-.scanbtn{background:linear-gradient(145deg,#ff39aa,#a90068);flex:1;min-width:170px}
-.clear{background:linear-gradient(145deg,#555e69,#303740)}
-.small{font-size:.76rem;color:var(--muted);margin-top:7px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
-.stat{background:#10151c;border:1px solid var(--line);border-radius:10px;text-align:center;padding:8px}
-.stat b{display:block;font-size:1.25rem}.stat span{font-size:.67rem;color:var(--muted)}
-#pendingCount{color:var(--amber)}#doneCount{color:var(--green)}#totalCount{color:var(--cyan)}
-.search{width:100%;background:#0c1016;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px 13px;outline:none;margin-bottom:10px}
-.section-title{font-size:.86rem;padding:8px 3px;border-bottom:1px solid var(--line);margin-bottom:7px}
-.section-title.pending{color:var(--amber)}.section-title.done{color:var(--green)}
-.item{display:flex;align-items:center;gap:9px;background:linear-gradient(145deg,#141a22,#10151b);border:1px solid #242d38;
-border-left:4px solid var(--amber);border-radius:11px;padding:10px;margin-bottom:7px;transition:.2s}
-.item.done{border-left-color:var(--green);opacity:.72}
-.item.scan-hit{animation:hit 2s ease;outline:4px solid var(--scan);background:#30152a;box-shadow:0 0 18px 4px #ff2d9a77}
-@keyframes hit{0%{transform:scale(1.03)}50%{transform:scale(1.01)}100%{transform:scale(1)}}
-.num{min-width:32px;text-align:center;background:#202832;border-radius:7px;padding:5px 3px;color:#aab4c0;font-size:.72rem}
-.tick{width:22px;height:22px;border:2px solid #5a6572;border-radius:6px;flex:none;cursor:pointer;display:grid;place-items:center}
-.tick.checked{background:var(--green);border-color:var(--green)}.tick.checked:after{content:"✓";font-weight:900;color:#00170d}
-.reg{font-size:1rem;font-weight:900;letter-spacing:.7px}.meta{font-size:.7rem;color:var(--muted);margin-top:1px}
-.hidden{display:none!important}
-#scanner{display:none;position:fixed;inset:0;background:#020406eF;z-index:1000;align-items:center;justify-content:center;padding:15px}
-#scanner.open{display:flex}
-.scanbox{width:min(94vw,520px);background:#0c1118;border:1px solid #33404d;border-radius:18px;padding:12px;box-shadow:0 15px 60px #000}
-.video-wrap{position:relative;background:#000;border-radius:13px;overflow:hidden;aspect-ratio:16/11}
-#video{width:100%;height:100%;object-fit:cover;display:block}
-.overlay{position:absolute;left:7%;right:7%;top:39%;height:22%;border:3px solid var(--scan);border-radius:9px;
-box-shadow:0 0 0 999px #0006,0 0 20px #ff2d9a;pointer-events:none}
-.overlay:before{content:"REGISTRATION";position:absolute;left:8px;top:-23px;color:#ff72c0;font-size:.65rem;font-weight:900;letter-spacing:1px}
-.scanline{position:absolute;left:4%;right:4%;top:50%;height:2px;background:#ff65bd;box-shadow:0 0 10px #ff2d9a;animation:scanline 1.5s linear infinite}
-@keyframes scanline{0%{top:42%}50%{top:58%}100%{top:42%}}
-.scan-status{text-align:center;font-size:.82rem;color:#dbe3ea;padding:9px 4px;min-height:36px}
-.scan-status strong{color:#ff66bd}
-.scanner-controls{display:flex;gap:8px}.scanner-controls button{flex:1}
-.close{background:linear-gradient(145deg,#555,#292e34)}
-.scan-note{text-align:center;color:#7f8995;font-size:.67rem;margin-top:7px}
-#ocrCanvas{display:none}
-@media(max-width:500px){body{padding:8px}.header h1{font-size:1rem}.item{padding:9px}.reg{font-size:.94rem}}
+button{cursor:pointer;border:none}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 4px 20px;animation:slideDown .7s ease-out}
+@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#1b2637,#090d14);border:1px solid rgba(52,66,87,.6);box-shadow:inset 0 1px 1px rgba(255,255,255,.08),var(--shadow-md);font-size:22px;animation:pulseGlow 3s ease-in-out infinite}
+@keyframes pulseGlow{0%,100%{box-shadow:inset 0 1px 1px rgba(255,255,255,.08),var(--shadow-md),0 0 0 rgba(53,216,255,0)}50%{box-shadow:inset 0 1px 1px rgba(255,255,255,.08),var(--shadow-md),0 0 18px rgba(53,216,255,.15)}}
+.brand h1{font-size:1.15rem;margin:0;font-weight:800;letter-spacing:.6px;background:linear-gradient(90deg,var(--cyan),#fff,var(--purple));background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmerText 4s ease-in-out infinite}
+@keyframes shimmerText{0%,100%{background-position:0% center}50%{background-position:100% center}}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:.7rem;letter-spacing:.5px}
+.icon-btn{border:1px solid var(--border);background:var(--card);color:var(--text);width:44px;height:44px;border-radius:12px;box-shadow:var(--shadow-sm);transition:all .25s ease;display:grid;place-items:center;font-size:18px}
+.icon-btn:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow),var(--shadow-md)}
+.icon-btn:active{transform:translateY(0);scale:.97}
+
+.hero{padding:24px;border:1px solid var(--border);border-radius:var(--radius-lg);background:linear-gradient(145deg,var(--card),var(--surface));box-shadow:var(--shadow-lg);position:relative;overflow:hidden;animation:scaleIn .7s ease-out .1s both}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.hero:before{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:var(--cyan);filter:blur(80px);opacity:.06;right:-80px;top:-100px;animation:floatOrb 8s ease-in-out infinite}
+@keyframes floatOrb{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,15px) scale(1.15)}}
+.hero-title{font-size:1.45rem;font-weight:800;margin:0 0 8px;position:relative;z-index:1}
+.hero-sub{color:var(--muted);font-size:.78rem;margin-bottom:18px;position:relative;z-index:1}
+textarea{width:100%;height:150px;resize:vertical;min-height:110px;background:rgba(0,0,0,.12);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);padding:16px;outline:none;font-size:.86rem;line-height:1.5;transition:all .3s ease}
+textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 4px var(--cyan-glow),inset 0 0 0 transparent;transform:translate(-1px,-1px)}
+.actions{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:16px}
+.btn{position:relative;border:0;border-radius:12px;min-height:48px;color:white;font-weight:800;font-size:.68rem;letter-spacing:.4px;overflow:hidden;box-shadow:0 6px 0 rgba(0,0,0,.25),0 12px 20px rgba(0,0,0,.18);transform:translateY(0);transition:all .15s ease;white-space:nowrap}
+.btn:before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,rgba(255,255,255,.25),transparent 45%,rgba(255,255,255,.08));transform:translateX(-100%);transition:transform .4s ease;pointer-events:none}
+.btn:hover:before{transform:translateX(100%)}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25),0 4px 8px rgba(0,0,0,.18);filter:brightness(.95)}
+.rebuild{background:linear-gradient(135deg,var(--cyan),var(--cyan2));box-shadow:0 6px 0 #065f78,0 12px 20px rgba(0,0,0,.18),0 0 20px var(--cyan-glow)}
+.remove{background:linear-gradient(135deg,var(--purple),var(--purple2));box-shadow:0 6px 0 #551c85,0 12px 20px rgba(0,0,0,.18),0 0 20px var(--purple-glow)}
+.scan{background:linear-gradient(135deg,var(--red),var(--red2));box-shadow:0 6px 0 #7a0e2a,0 12px 20px rgba(0,0,0,.18),0 0 20px var(--red-glow)}
+.reset{background:linear-gradient(135deg,#6b7280,#374151);box-shadow:0 6px 0 #1f2937,0 12px 20px rgba(0,0,0,.15)}
+.completed{background:linear-gradient(135deg,var(--green),var(--green2));box-shadow:0 6px 0 #065f3c,0 12px 20px rgba(0,0,0,.18),0 0 20px var(--green-glow)}
+.export{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 6px 0 #15803d,0 12px 20px rgba(0,0,0,.15)}
+.save{background:linear-gradient(135deg,var(--blue),#1e40af);box-shadow:0 6px 0 #1e3a8a,0 12px 20px rgba(0,0,0,.15),0 0 20px var(--blue-glow)}
+.restore{background:linear-gradient(135deg,var(--orange),#c2410c);box-shadow:0 6px 0 #9a340c,0 12px 20px rgba(0,0,0,.15),0 0 20px var(--orange-glow)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0;animation:fadeInUp .8s ease-out .2s both}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 10px;text-align:center;box-shadow:var(--shadow-md);transition:all .3s ease;position:relative;overflow:hidden}
+.stat:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;opacity:.6}
+.stat:nth-child(1):before{background:linear-gradient(90deg,var(--cyan),transparent)}
+.stat:nth-child(2):before{background:linear-gradient(90deg,var(--amber),transparent)}
+.stat:nth-child(3):before{background:linear-gradient(90deg,var(--green),transparent)}
+.stat:nth-child(4):before{background:linear-gradient(90deg,var(--blue),transparent)}
+.stat:hover{transform:translateY(-4px);border-color:var(--cyan);box-shadow:0 0 0 4px var(--cyan-glow),var(--shadow-lg)}
+.stat b{display:block;font-size:1.4rem;font-weight:800;line-height:1.2}.stat span{font-size:.68rem;color:var(--muted);font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+.s-found{color:var(--cyan)}.s-pending{color:var(--amber)}.s-done{color:var(--green)}.s-total{color:var(--blue)}
+
+.section{margin-top:22px;animation:fadeInUp .8s ease-out .3s both}
+.section-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-radius:var(--radius-md);background:var(--card2);border:1px solid var(--border);font-size:.78rem;font-weight:800;letter-spacing:.5px;transition:all .3s ease;position:relative;overflow:hidden}
+.section-head:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.section-head.f{color:var(--cyan);border-left:3px solid var(--cyan);background:linear-gradient(90deg,var(--cyan-glow),transparent);padding-left:20px}
+.section-head.p{color:var(--amber);border-left:3px solid var(--amber);background:linear-gradient(90deg,var(--amber-glow),transparent);padding-left:20px}
+.section-head.d{color:var(--green);border-left:3px solid var(--green);background:linear-gradient(90deg,var(--green-glow),transparent);padding-left:20px}
+.section-head span:last-child{opacity:.7;font-size:.72rem}
+
+.item{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;margin-top:10px;padding:16px;border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:var(--radius-md);background:var(--card);box-shadow:var(--shadow-sm);transition:all .3s cubic-bezier(.4,0,.2,1);animation:itemSlideIn .4s ease-out both}
+@keyframes itemSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.item:hover{border-color:var(--cyan);transform:translateX(4px);box-shadow:var(--shadow-md)}
+.item.found{border-left-color:var(--cyan);background:linear-gradient(90deg,var(--cyan-glow),var(--card));animation:foundPulse 1s ease-out,itemSlideIn .4s ease-out both}
+@keyframes foundPulse{0%{box-shadow:0 0 0 0 var(--cyan-glow)}50%{box-shadow:0 0 0 12px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.item.done{border-left-color:var(--green);opacity:.9;background:linear-gradient(90deg,var(--green-glow),var(--card))}
+.item.can-remove{border-left-color:var(--purple);background:linear-gradient(90deg,var(--purple-glow),var(--card))}
+.item.can-complete{border-left-color:var(--green);background:linear-gradient(90deg,var(--green-glow),var(--card))}
+.check{width:30px;height:30px;border:2px solid var(--border);border-radius:10px;display:grid;place-items:center;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);user-select:none;font-weight:900;font-size:.85rem}
+.check:hover{border-color:var(--cyan);transform:scale(1.1)}
+.check.checked-remove{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 0 0 3px var(--purple-glow);animation:popIn .2s ease-out}
+@keyframes popIn{0%{transform:scale(.8)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+.check.checked-complete{background:var(--green);border-color:var(--green);color:#00170d;box-shadow:0 0 0 3px var(--green-glow);animation:popIn .2s ease-out}
+.check.done-check{background:var(--green);border-color:var(--green);color:#00170d}
+.reg{font-size:1rem;font-weight:900;letter-spacing:1.5px}.meta{font-size:.68rem;color:var(--muted);margin-top:4px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ref,.note{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 6px;outline:none;font-size:.72rem;transition:all .2s ease}
+.ref{width:70px;text-align:center}.note{width:120px}.ref:focus,.note:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow)}
+.badge{font-size:.6rem;font-weight:800;border-radius:40px;padding:6px 10px;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px}.bf{background:var(--cyan-glow);color:var(--cyan);border:1px solid var(--cyan)}.bp{background:var(--amber-glow);color:#b48200;border:1px solid var(--amber)}.bd{background:var(--green-glow);color:var(--green2);border:1px solid var(--green)}.br{background:var(--purple-glow);color:var(--purple);border:1px solid var(--purple)}.bc{background:var(--green-glow);color:var(--green);border:1px solid var(--green)}
+[data-theme=light] .bf{background:#d9f7ff}[data-theme=light] .bp{background:#fff0c9}[data-theme=light] .bd{background:#d8f7e7}[data-theme=light] .br{background:#f3e8ff}[data-theme=light] .bc{background:#d1fae5}
+
+.floating{position:fixed;right:20px;bottom:20px;width:64px;height:64px;border-radius:18px;border:2px solid rgba(255,113,141,.5);background:linear-gradient(145deg,var(--red),var(--red2));color:white;font-size:26px;z-index:2000;box-shadow:0 8px 0 #650d25,0 18px 35px rgba(255,17,68,.25),0 0 0 0 rgba(255,61,103,.4);transform:rotate(-4deg);transition:all .18s cubic-bezier(.4,0,.2,1);animation:floatingPulse 2.5s ease-in-out infinite;display:grid;place-items:center;text-decoration:none}
+@keyframes floatingPulse{0%,100%{box-shadow:0 8px 0 #650d25,0 18px 35px rgba(255,17,68,.25),0 0 0 0 rgba(255,61,103,.4)}50%{box-shadow:0 8px 0 #650d25,0 18px 35px rgba(255,17,68,.25),0 0 0 10px rgba(255,61,103,0)}}
+.floating:hover{transform:rotate(-4deg) translateY(-4px) scale(1.05);animation:none;box-shadow:0 12px 0 #650d25,0 22px 40px rgba(255,17,68,.3),0 0 30px rgba(255,61,103,.3)}
+.floating:active{transform:rotate(-4deg) translateY(4px) scale(.98);box-shadow:0 4px 0 #650d25,0 8px 16px rgba(255,17,68,.2)}
+
+.notify{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-20px) scale(.95);z-index:9999;padding:14px 22px;border-radius:var(--radius-md);background:var(--card);border:1px solid var(--cyan);box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.4,0,.2,1);font-size:.82rem;font-weight:700;max-width:90%;text-align:center;backdrop-filter:blur(10px)}
+.notify.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+.notify.found{border-color:var(--green);background:var(--green-glow)}.notify.bad{border-color:var(--red);background:var(--red-glow)}.notify.info{border-color:var(--cyan);background:var(--cyan-glow)}.notify.purple{border-color:var(--purple);background:var(--purple-glow)}.notify.green{border-color:var(--green);background:var(--green-glow)}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);z-index:5000;display:grid;place-items:center;padding:20px;opacity:0;visibility:hidden;transition:all .25s ease}
+.modal.show{opacity:1;visibility:visible}.modal-box{width:min(400px,100%);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-lg);transform:scale(.9) translateY(10px);transition:all .3s cubic-bezier(.4,0,.2,1)}
+.modal.show .modal-box{transform:scale(1) translateY(0)}
+.modal-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;font-weight:800;color:var(--cyan);font-size:1.1rem}
+.modal-option{width:100%;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:16px;border-radius:var(--radius-md);text-align:left;margin:8px 0;font-weight:700;transition:all .2s ease}
+.modal-option:hover{border-color:var(--cyan);background:var(--cyan-glow);transform:translateX(6px)}
+.modal-option:active{transform:translateX(3px) scale(.99)}
+.file-field{width:100%;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:10px;transition:all .2s ease}
+.file-field:focus{border-color:var(--cyan);box-shadow:0 0 0 4px var(--cyan-glow)}
+
+#scanner{position:fixed;inset:0;z-index:4000;background:rgba(3,5,9,.96);backdrop-filter:blur(15px);display:none;align-items:center;justify-content:center;padding:20px;animation:fadeIn .3s ease}
+.scanner-card{width:min(720px,100%);background:linear-gradient(145deg,#101721,#080b11);border:1px solid rgba(51,65,84,.8);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-lg);animation:scaleIn .4s ease-out}
+.scanner-top{display:flex;justify-content:space-between;align-items:center;padding:8px 4px 14px}.scanner-top b{font-size:.95rem}.scanner-top span{font-size:.7rem;color:#91a0b5}
+.camera{position:relative;aspect-ratio:16/10;background:#000;border-radius:var(--radius-md);overflow:hidden;border:1px solid #303d50;box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+#video{width:100%;height:100%;object-fit:cover}
+.scan-window{position:absolute;left:6%;right:6%;top:35%;height:30%;border:2px solid var(--red);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.6),0 0 30px rgba(255,49,85,.35);pointer-events:none;animation:scanPulse 1.5s ease-in-out infinite}
+@keyframes scanPulse{0%,100%{border-color:var(--red);box-shadow:0 0 0 9999px rgba(0,0,0,.6),0 0 25px rgba(255,49,85,.35)}50%{border-color:#ff718d;box-shadow:0 0 0 9999px rgba(0,0,0,.6),0 0 40px rgba(255,49,85,.5)}}
+.scan-window:before,.scan-window:after{content:"";position:absolute;width:28px;height:28px;border-color:#fff;border-style:solid}.scan-window:before{left:-2px;top:-2px;border-width:3px 0 0 3px;border-radius:10px 0 0}.scan-window:after{right:-2px;bottom:-2px;border-width:0 3px 3px 0;border-radius:0 0 10px}
+.scan-beam{position:absolute;left:2%;right:2%;height:3px;top:50%;background:linear-gradient(90deg,transparent,var(--red),#fff,var(--red),transparent);box-shadow:0 0 20px var(--red),0 0 40px var(--red);animation:beam 1.4s ease-in-out infinite}
+@keyframes beam{0%,100%{transform:translateY(-40px);opacity:.4}50%{transform:translateY(40px);opacity:.9}}
+.scan-info{text-align:center;padding:12px 6px;color:#a9b6c8;font-size:.76rem}.scan-info strong{color:#fff}
+.scan-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.scan-btn{border:0;border-radius:var(--radius-md);padding:14px;font-weight:800;transition:all .2s ease}.scan-btn:hover{transform:translateY(-2px)}.scan-btn:active{transform:translateY(1px) scale(.98)}
+.torch{background:linear-gradient(135deg,#ffbf21,#e6a800);color:#171000;box-shadow:0 4px 0 #b38600,0 8px 16px rgba(255,191,33,.25)}.torch:hover{box-shadow:0 6px 0 #b38600,0 12px 24px rgba(255,191,33,.35)}.torch:disabled{opacity:.5;filter:grayscale(.5);transform:none;box-shadow:none}
+.stop{background:linear-gradient(135deg,#374151,#1f2937);color:#fff;box-shadow:0 4px 0 #111827,0 8px 16px rgba(0,0,0,.2)}.stop:hover{box-shadow:0 6px 0 #111827,0 12px 24px rgba(0,0,0,.3)}
+#canvas{display:none}
+
+@media(max-width:760px){
+  .actions{grid-template-columns:repeat(4,1fr);gap:10px}
+  .btn{font-size:.6rem;padding:4px 2px}
+  body{padding:12px;padding-bottom:100px}
+  .hero{padding:18px}
+  .stats{gap:8px}
+  .stat{padding:12px 8px}
+  .controls{flex-direction:row;flex-wrap:wrap}
+  .note{width:90px}
+}
+@media(min-width:761px){
+  body{padding-left:24px;padding-right:24px}
+  .hero{padding:28px}
+}
 </style>
 </head>
-<!-- ================================================== -->
-<!-- VISITOR COUNTER — BOTTOM RIGHT · NUMBERS ONLY      -->
-<!-- Copy this entire block into your HTML file         -->
-<!-- ================================================== -->
-
-<!-- STYLES → Paste inside <head> or <style> section -->
-<style>
-.visitor-counter{position:fixed;bottom:15px;right:12px;z-index:9999;font-size:1.65rem;color:#b8a0d8;font-family:'Courier New',monospace;letter-spacing:1px;opacity:.7}
-@media(max-width:600px){.visitor-counter{font-size:1.55rem;bottom:6px;right:8px}}
-</style>
-
-<!-- DISPLAY → Paste right after opening <body> tag -->
-<div class="visitor-counter" id="visitorCount">0</div>
-
-<!-- LOGIC → Paste right before closing </body> tag -->
-<script>
-(function(){const e=document.getElementById("visitorCount");const t="visitor_counter_page_001";let n=parseInt(localStorage.getItem(t)||"0",10);const o=sessionStorage.getItem(t+"_visited");if(!o){n+=1;localStorage.setItem(t,n.toString());sessionStorage.setItem(t+"_visited","true")}e.textContent=n.toLocaleString()})();
-</script>
-
-<!-- ⚠️ For different pages: change "visitor_counter_page_001" to a unique name per page -->
-<!-- ================================================== -->
-
- 
 <body>
-
-<header class="header">
- <button id="resetBtn" class="top-reset" type="button">↻ RESET</button>
- <h1>🚐 HPC Registration Scanner</h1>
- <p>Build your job list, point the plate scanner at a vehicle, and match it automatically.</p>
- <div class="badge" style="right:72px">OCR LIVE</div>
+<div id="notify" class="notify"></div>
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">⌁</div><div><h1>HPC SMART SCANNER</h1><p>HYDE PARK CORNER • JOB CONTROL</p></div></div>
+  <button class="icon-btn" id="themeBtn" title="Toggle theme">☾</button>
 </header>
 
-<section class="panel">
- <div class="panel-title">📋 JOB REGISTRATIONS</div>
- <textarea id="rawText" placeholder=""></textarea>
- <div class="row">
-  <button class="btn primary" id="processBtn">⚡ PROCESS LIST</button>
-  <button class="btn clear" id="clearBtn">Clear</button>
-  <button class="btn scanbtn" id="openScannerBtn">📷 SCAN REG</button>
- </div>
- <div class="small">Registrations are saved automatically on this device.</div>
+<section class="hero">
+  <h2 class="hero-title">Registration Job Board</h2>
+  <div class="hero-sub">Paste your registrations, rebuild the board, then scan with the rear camera.</div>
+  <textarea id="regBox" placeholder="Paste your list here…"></textarea>
+  <div class="actions">
+    <button class="btn rebuild" id="processBtn">⚡ REBUILD</button>
+    <button class="btn remove" id="removeBtn">✂️ REMOVE</button>
+    <button class="btn scan" id="openScanBtn">⌁ SCAN</button>
+    <button class="btn reset" id="clearBtn">↺ RESET</button>
+    <button class="btn completed" id="completedBtn">✓ COMPLETED</button>
+    <button class="btn export" id="exportBtn">⇧ EXPORT</button>
+    <button class="btn save" id="saveLayoutBtn">▣ SAVE</button>
+    <button class="btn restore" id="restoreLayoutBtn">⇩ RESTORE</button>
+  </div>
 </section>
 
 <div class="stats">
- <div class="stat"><b id="pendingCount">0</b><span>PENDING</span></div>
- <div class="stat"><b id="doneCount">0</b><span>DONE</span></div>
- <div class="stat"><b id="totalCount">0</b><span>TOTAL</span></div>
+  <div class="stat"><b class="s-found" id="foundCount">0</b><span>FOUND</span></div>
+  <div class="stat"><b class="s-pending" id="pendingCount">0</b><span>PENDING</span></div>
+  <div class="stat"><b class="s-done" id="doneCount">0</b><span>DONE</span></div>
+  <div class="stat"><b class="s-total" id="totalCount">0</b><span>TOTAL</span></div>
 </div>
 
-<input id="search" class="search" placeholder="🔍 Search registration">
+<section class="section" id="foundSection" style="display:none"><div class="section-head f"><span>● FOUND — READY</span><span id="foundHeadCount"></span></div><div id="foundList"></div></section>
+<section class="section"><div class="section-head p"><span>◌ PENDING</span><span id="pendingHeadCount"></span></div><div id="pendingList"></div></section>
+<section class="section"><div class="section-head d"><span>✓ COMPLETED</span><span id="doneHeadCount"></span></div><div id="doneList"></div></section>
 
-<section>
- <div class="section-title pending">⏳ TO DO</div>
- <div id="pendingList"></div>
-</section>
-<section>
- <div class="section-title done">✅ COMPLETED</div>
- <div id="doneList"></div>
-</section>
+<button class="floating" id="floatingScanBtn" title="Start scanner">⌁</button>
 
 <div id="scanner">
- <div class="scanbox">
-  <div class="panel-title">📷 AIM AT VEHICLE REGISTRATION</div>
-  <div class="video-wrap">
-   <video id="video" autoplay muted playsinline></video>
-   <div class="overlay"><div class="scanline"></div></div>
+  <div class="scanner-card">
+    <div class="scanner-top"><b>LIVE REGISTRATION SCANNER</b><span id="scanMode">INITIALISING</span></div>
+    <div class="camera"><video id="video" autoplay muted playsinline></video><div class="scan-window"><div class="scan-beam"></div></div></div>
+    <div class="scan-info" id="scanStatus">Requesting rear camera…</div>
+    <div class="scan-controls"><button class="scan-btn torch" id="torchBtn" disabled>🔦 TORCH</button><button class="scan-btn stop" id="closeScan">✕ CLOSE SCANNER</button></div>
   </div>
-  <div class="scan-status" id="scanStatus">Starting camera…</div>
-  <div class="scanner-controls">
-   <button class="btn close" id="closeScanner">✕ CLOSE</button>
-   <button class="btn scanbtn" id="scanNow">◎ SCAN NOW</button>
-  </div>
-  <div class="scan-note">Keep the complete registration inside the pink plate-shaped window.</div>
- </div>
 </div>
-<canvas id="ocrCanvas"></canvas>
+
+<div id="exportModal" class="modal"><div class="modal-box"><div class="modal-title">EXPORT <button class="icon-btn" id="exportClose">×</button></div>
+<button class="modal-option" data-type="all">▤ Complete job list</button><button class="modal-option" data-type="completed">✓ Completed jobs</button><button class="modal-option" data-type="remaining">◌ Remaining jobs</button></div></div>
+<div id="restoreModal" class="modal"><div class="modal-box"><div class="modal-title">RESTORE LAYOUT <button class="icon-btn" id="restoreClose">×</button></div>
+<input type="file" id="restoreFileInput" accept=".json,.txt" class="file-field"><button class="modal-option" id="doRestoreBtn">✓ Restore from file</button></div></div>
+<canvas id="canvas"></canvas>
 
 <script>
-const KEY='enfield-dotcom-ocr-v1';
-let items=[];
-let stream=null, scanning=false, worker=null, lastCandidate='', lastCandidateAt=0;
-
 const $=id=>document.getElementById(id);
-const raw=$('rawText'), pendingList=$('pendingList'), doneList=$('doneList');
+const SAVE_KEY='hpc_smart_scanner_v2',THEME_KEY='hpc_smart_theme_v2';
+let items=[],stream=null,track=null,torchOn=false,supportMode=null,lastHit=0,scanBusy=false;
 
-function norm(s){
- return (s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+function clean(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+function parseLine(line){
+ const original=line.trim(); if(!original)return null;
+ let m=original.match(/^(.*?)\s*[-–]\s*DONE\s*$/i);
+ if(m){let reg=clean(m[1]);return reg.length>=5?{reg,done:true,found:false,customNum:'',notes:'',markedForRemove:false,markedForComplete:false}:null}
+ m=original.match(/^(.*?)\s*[-–]\s*(.+)$/);
+ if(m){let reg=clean(m[1]);return reg.length>=5?{reg,done:false,found:false,customNum:'',notes:m[2].trim(),markedForRemove:false,markedForComplete:false}:null}
+ let reg=clean(original);return reg.length>=5?{reg,done:false,found:false,customNum:'',notes:'',markedForRemove:false,markedForComplete:false}:null
 }
-function validReg(s){
- const n=norm(s);
- return /^[A-Z]{2}\d{2}[A-Z0-9]{3}$/.test(n);
-}
-function parse(text){
- const out=[], seen=new Set();
- const re=/\b([A-Z]{2}\s*\d{2}\s*[A-Z0-9]{3})\b/gi;
- let m;
- while((m=re.exec(text))){
-   const reg=norm(m[1]);
-   if(validReg(reg)&&!seen.has(reg)){
-     const near=text.slice(Math.max(0,m.index-18),m.index+m[0].length+18);
-     out.push({reg,done:/-?\s*DONE\b/i.test(near)});
-     seen.add(reg);
-   }
- }
- return out;
-}
-function save(){localStorage.setItem(KEY,JSON.stringify({items,raw:raw.value}));}
-function load(){
- try{
-  const d=JSON.parse(localStorage.getItem(KEY)||'null');
-  if(d?.items?.length){items=d.items;raw.value=d.raw||'';render();}
- }catch(e){}
-}
-function render(){
- pendingList.innerHTML='';doneList.innerHTML='';
- items.forEach((x,i)=>{
-   const el=document.createElement('div');
-   el.className='item '+(x.done?'done':'pending');
-   el.dataset.reg=x.reg;
-   el.innerHTML=`<div class="num">${i+1}</div><div class="tick ${x.done?'checked':''}"></div><div><div class="reg">${x.reg}</div><div class="meta">${x.done?'COMPLETED':'PENDING'} • Registration</div></div>`;
-   el.querySelector('.tick').onclick=()=>toggle(i);
-   (x.done?doneList:pendingList).appendChild(el);
+function buildList(text){
+ const seen=new Map();
+ text.split(/\r?\n/).map(parseLine).filter(Boolean).forEach(x=>{
+   if(!seen.has(x.reg))seen.set(x.reg,x); else {let y=seen.get(x.reg);y.done=y.done||x.done;if(!y.notes&&x.notes)y.notes=x.notes}
  });
- $('pendingCount').textContent=items.filter(x=>!x.done).length;
- $('doneCount').textContent=items.filter(x=>x.done).length;
+ return [...seen.values()]
+}
+function saveData(){localStorage.setItem(SAVE_KEY,JSON.stringify({listText:$('regBox').value,items}))}
+function loadData(){try{let d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(d&&Array.isArray(d.items)){items=d.items;$('regBox').value=d.listText||'';return true}}catch(e){}return false}
+function notify(msg,type='info'){let n=$('notify');n.textContent=msg;n.className='notify show '+type;clearTimeout(notify.t);notify.t=setTimeout(()=>n.classList.remove('show'),3000)}
+function tone(freqs,type='sine',duration=.42){
+ try{let A=window.AudioContext||window.webkitAudioContext,c=new A(),o=c.createOscillator(),g=c.createGain();o.type=type;freqs.forEach((f,i)=>o.frequency.setValueAtTime(f,c.currentTime+i*.12));g.gain.setValueAtTime(.55,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+duration);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+duration)}catch(e){}
+}
+
+function toggleRemoveMark(i){
+ if(items[i].done) return notify('Use ✓ in COMPLETED section to restore','info');
+ if(items[i].found) return notify('Cannot mark FOUND — mark PENDING first','bad');
+ items[i].markedForRemove=!items[i].markedForRemove;
+ if(items[i].markedForRemove) items[i].markedForComplete=false;
+ saveData(); render();
+}
+
+function toggleCompleteMark(i){
+ if(items[i].done) return notify('Use ✓ below to restore to PENDING','info');
+ if(items[i].found) return notify('Cannot mark FOUND — mark PENDING first','bad');
+ items[i].markedForComplete=!items[i].markedForComplete;
+ if(items[i].markedForComplete) items[i].markedForRemove=false;
+ saveData(); render();
+}
+
+function removeMarkedPending(){
+ const marked=items.filter(x=>x.markedForRemove && !x.done && !x.found);
+ if(marked.length===0) return notify('Tick items first to REMOVE','purple');
+ if(!confirm(`Remove ${marked.length} selected item(s)?\nThis cannot be undone.`)) return;
+ items=items.filter(x=>!(x.markedForRemove && !x.done && !x.found));
+ saveData(); render();
+ notify(`✅ Removed ${marked.length} item(s)`, 'found');
+}
+
+function moveMarkedToCompleted(){
+ const marked=items.filter(x=>x.markedForComplete && !x.done && !x.found);
+ if(marked.length===0) return notify('Tick items first to move to COMPLETED','green');
+ marked.forEach(x=>{
+   x.done=true;
+   x.markedForComplete=false;
+   x.markedForRemove=false;
+ });
+ saveData(); render();
+ notify(`✅ ${marked.length} item(s) moved to COMPLETED`, 'found');
+}
+
+function restoreToPending(i){
+ if(!items[i].done) return;
+ items[i].done=false;
+ items[i].markedForRemove=false;
+ items[i].markedForComplete=false;
+ saveData(); render();
+ notify('↩️ Restored to PENDING','info');
+}
+
+function render(){
+ const f=items.filter(x=>x.found&&!x.done),p=items.filter(x=>!x.found&&!x.done),d=items.filter(x=>x.done);
+ $('foundSection').style.display=f.length?'block':'none';
+ 
+ const make=(it,type)=>{
+  let i=items.indexOf(it),tag,checkClass='check',checkClick='',checkIcon='',itemClass='',badgeClass='';
+  
+  if(type==='done'){
+   checkClass='check done-check';
+   checkIcon='✓';
+   checkClick=`restoreToPending(${i})`;
+   tag='DONE ↩️';
+   badgeClass='bd';
+  }else if(type==='found'){
+   badgeClass='bf';
+   tag='FOUND';
+  }else{
+   if(it.markedForRemove){
+    checkClass='check checked-remove';
+    checkIcon='✗';
+    checkClick=`toggleRemoveMark(${i})`;
+    tag='REMOVE';
+    badgeClass='br';
+    itemClass='can-remove';
+   }else if(it.markedForComplete){
+    checkClass='check checked-complete';
+    checkIcon='✓';
+    checkClick=`toggleCompleteMark(${i})`;
+    tag='MOVE→DONE';
+    badgeClass='bc';
+    itemClass='can-complete';
+   }else{
+    checkClick=`toggleRemoveMark(${i});toggleCompleteMark(${i})`;
+    tag='PENDING';
+    badgeClass='bp';
+   }
+  }
+  
+  return `<div class="item ${type==='found'?'found':''} ${type==='done'?'done':''} ${itemClass}">
+   <div class="${checkClass}" onclick="${checkClick}">${checkIcon}</div>
+   <div><div class="reg">${it.reg}</div><div class="meta">${it.notes?escapeHtml(it.notes):'Registration target'}</div></div>
+   <div class="controls">
+     <input class="ref" maxlength="4" inputmode="numeric" placeholder="REF" value="${escapeAttr(it.customNum||'')}" oninput="updateRef(${i},this.value)">
+     <input class="note" placeholder="Note…" value="${escapeAttr(it.notes||'')}" oninput="updateNote(${i},this.value)">
+     <span class="badge ${badgeClass}">${tag}</span>
+   </div>
+  </div>`;
+ };
+ 
+ $('foundList').innerHTML=f.map(x=>make(x,'found')).join('');
+ $('pendingList').innerHTML=p.map(x=>make(x,'pending')).join('');
+ $('doneList').innerHTML=d.map(x=>make(x,'done')).join('');
+ 
+ $('foundCount').textContent=f.length;
+ $('pendingCount').textContent=p.length;
+ $('doneCount').textContent=d.length;
  $('totalCount').textContent=items.length;
- filter();
+ 
+ $('foundHeadCount').textContent=f.length;
+ $('pendingHeadCount').textContent=p.length;
+ $('doneHeadCount').textContent=d.length;
 }
-function toggle(i){items[i].done=!items[i].done;save();render();}
-function filter(){
- const q=norm($('search').value);
- document.querySelectorAll('.item').forEach(el=>el.classList.toggle('hidden',q&&!norm(el.dataset.reg).includes(q)));
-}
-$('processBtn').onclick=()=>{
- const parsed=parse(raw.value);
- if(!parsed.length){alert('No valid UK-style registrations found.');return;}
- items=parsed;save();render();
-};
-$('clearBtn').onclick=()=>{raw.value='';raw.focus();};
-$('search').oninput=filter;
 
-$('resetBtn').onclick=()=>{
- if(confirm('Reset the saved job list and clear all progress?')){
-   localStorage.removeItem(KEY);
-   items=[];
-   raw.value='';
-   $('search').value='';
-   render();
- }
-};
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function escapeAttr(s){return escapeHtml(s)}
+function updateRef(i,v){items[i].customNum=v.replace(/\D/g,'').slice(0,4);saveData()}
+function updateNote(i,v){items[i].notes=v.trim();saveData()}
+function looksLikePlate(s){return s.length>=6&&s.length<=8&&/[A-Z]/.test(s)&&/[0-9]/.test(s)}
 
-function beep(){
- try{
-  const AC=window.AudioContext||window.webkitAudioContext;
-  const c=new AC(),o=c.createOscillator(),g=c.createGain();
-  o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.001,c.currentTime);
-  g.gain.exponentialRampToValueAtTime(.25,c.currentTime+.02);
-  g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.4);
-  o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.42);
- }catch(e){}
-}
-function openScanner(){
- $('scanner').classList.add('open');
- startCamera();
-}
-async function startCamera(){
+async function checkFlashSupport(){if(!track)return null;let c=track.getCapabilities();if('torch'in c)return supportMode='torch';if(c.fillLightMode?.includes('continuous'))return supportMode='continuous';if(c.fillLightMode?.includes('flash'))return supportMode='flash';return null}
+async function setTorch(on){if(!track||!supportMode)return false;try{await track.applyConstraints({advanced:[supportMode==='torch'?{torch:on}:{fillLightMode:on?(supportMode==='continuous'?'continuous':'flash'):'off'}]});return true}catch(e){return false}}
+async function toggleTorch(){if(!track)return;torchOn=!torchOn;if(await setTorch(torchOn)){ $('torchBtn').textContent=torchOn?'🔦 TORCH ON':'🔦 TORCH';$('torchBtn').style.opacity=torchOn?'1':'.9'}else{torchOn=!torchOn;$('torchBtn').disabled=true;notify('Browser torch unavailable — use phone torch','bad')}}
+
+async function startScanner(){
+ if(!items.length){notify('Paste your registrations and press REBUILD first','bad');return}
+ $('scanner').style.display='flex';$('scanStatus').textContent='Requesting rear camera…';$('scanMode').textContent='CONNECTING';
  try{
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
-  $('video').srcObject=stream;
-  $('scanStatus').innerHTML='Point the pink window at a registration plate.';
-  scanning=true;
+  $('video').srcObject=stream;track=stream.getVideoTracks()[0];let mode=await checkFlashSupport();
+  $('scanMode').textContent=mode?('LED '+mode.toUpperCase()):'LIVE';
+  $('torchBtn').disabled=!mode;
+  $('scanStatus').innerHTML=mode?'Camera ready — centre the registration inside the red frame.':'Camera ready — browser torch unavailable.';
   scanLoop();
- }catch(e){
-  scanning=false;
-  $('scanStatus').innerHTML='<strong>Camera unavailable.</strong> Use HTTPS/GitHub Pages and allow camera access.';
- }
+ }catch(e){$('scanStatus').textContent='Camera unavailable. Allow camera permission and try again.';notify('Camera permission required','bad')}
 }
-function stopCamera(){
- scanning=false;
- if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
- $('video').srcObject=null;
- $('scanner').classList.remove('open');
-}
-$('openScannerBtn').onclick=openScanner;
-$('closeScanner').onclick=stopCamera;
-$('scanNow').onclick=()=>scanFrame(true);
 
-function cropFrame(){
- const v=$('video'),c=$('ocrCanvas');
- if(!v.videoWidth)return null;
- const w=v.videoWidth,h=v.videoHeight;
- const sx=Math.round(w*.07), sy=Math.round(h*.39), sw=Math.round(w*.86), sh=Math.round(h*.22);
- c.width=sw;c.height=sh;
- const ctx=c.getContext('2d');
- ctx.drawImage(v,sx,sy,sw,sh,0,0,sw,sh);
- return c;
-}
-async function scanFrame(manual=false){
- if(!scanning||!window.Tesseract)return;
- const c=cropFrame(); if(!c)return;
- if(manual)$('scanStatus').textContent='Reading registration…';
+async function stopScanner(){if(torchOn&&track)await setTorch(false);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;track=null;torchOn=false;supportMode=null;scanBusy=false;$('scanner').style.display='none';$('torchBtn').disabled=true;$('torchBtn').textContent='🔦 TORCH'}
+
+async function scanLoop(){
+ if(!stream||scanBusy)return;
+ const v=$('video'),c=$('canvas');if(!v.videoWidth){setTimeout(scanLoop,300);return}
+ scanBusy=true;
+ c.width=Math.round(v.videoWidth*.88);
+ c.height=Math.round(v.videoHeight*.28);
+ let ctx=c.getContext('2d');
+ ctx.drawImage(v,Math.round(v.videoWidth*.06),Math.round(v.videoHeight*.36),c.width,c.height,0,0,c.width,c.height);
  try{
-  const r=await Tesseract.recognize(c,'eng',{
-    tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-    preserve_interword_spaces:'0'
-  });
-  const text=(r.data?.text||'').toUpperCase();
-  const candidate=extractCandidate(text);
-  if(candidate){
-    const match=items.find(x=>norm(x.reg)===candidate);
-    if(match && Date.now()-lastCandidateAt>2500){ // prevent rapid re-trigger
-      lastCandidate=candidate; lastCandidateAt=Date.now();
-      handleMatchFound(candidate);
+  let r=await Tesseract.recognize(c,'eng',{logger:()=>{},tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',tessedit_pageseg_mode:7});
+  let found=clean(r.data.text);
+  if(looksLikePlate(found)){
+   let match=items.find(x=>found===x.reg||found.includes(x.reg)||x.reg.includes(found));
+   if(match){
+    if(!match.found&&!match.done&&Date.now()-lastHit>2200){
+      lastHit=Date.now();
+      match.found=true;
+      match.markedForRemove=false;
+      match.markedForComplete=false;
+      saveData();render();
+      tone([880,1100]);
+      notify('FOUND — '+match.reg,'found');
+      await stopScanner();
+      setTimeout(()=>document.querySelector('.item.found')?.scrollIntoView({behavior:'smooth',block:'center'}),120);
       return;
     }
+    if((match.found||match.done)&&Date.now()-lastHit>2200){
+      lastHit=Date.now();
+      tone([523,659,784],'triangle',.5);
+      notify('Already processed — '+match.reg,'info');
+    }
+   }
   }
-  if(manual)$('scanStatus').textContent=text.trim()?`OCR: ${text.trim()}`:'No registration detected — try again.';
- }catch(e){
-  if(manual)$('scanStatus').textContent='OCR retry — hold the plate steady.';
- }
+ }catch(e){}
+ scanBusy=false;
+ if(stream)setTimeout(scanLoop,550);
 }
 
-function handleMatchFound(reg){
- // 1. Alert & sound
- alert(`✅ MATCH FOUND: ${reg}`);
- beep();
- 
- // 2. Close scanner box
- stopCamera();
- 
- // 3. Highlight & scroll to matched item
- highlightMatch(reg);
+function today(){let d=new Date();return String(d.getDate()).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0')+d.getFullYear()}
+function saveFile(){let d={savedAt:new Date().toISOString(),listText:$('regBox').value,items};download(JSON.stringify(d,null,2),`HPC-LAYOUT-SAVED-(${today()}).json`,'application/json');notify('Layout saved','found')}
+function exportText(type){
+  let a=type==='all'?items:type==='completed'?items.filter(x=>x.done):items.filter(x=>!x.done),
+      label=type==='all'?'COMPLETE JOB LIST':type==='completed'?'COMPLETED JOBS':'REMAINING JOBS';
+  let t=`${label}
+Date: ${new Date().toLocaleDateString('en-GB')}
+Total: ${a.length}
+${'━'.repeat(34)}
+
+`;
+  a.forEach((x,i)=>t+=`${String(i+1).padStart(3,'0')}  ${x.reg}  Ref: ${x.customNum||'----'}  ${x.done?'[DONE]':x.found?'[FOUND]':'[PENDING]'}${x.notes?'  Note: '+x.notes:''}\n`);
+  download(t,`HPC-${type.toUpperCase()}-(${today()}).txt`,'text/plain');
+  $('exportModal').classList.remove('show');
+  notify('Export created','found');
 }
 
-function extractCandidate(text){
- const n=norm(text);
- const m=n.match(/[A-Z]{2}\d{2}[A-Z0-9]{3}/);
- return m?m[0]:'';
+function download(data,name,type){
+  let b=new Blob([data],{type}),
+      u=URL.createObjectURL(b),
+      a=document.createElement('a');
+  a.href=u;
+  a.download=name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),500);
 }
-function highlightMatch(reg){
- // Clear any existing highlights
- document.querySelectorAll('.scan-hit').forEach(x=>x.classList.remove('scan-hit'));
- // Find & highlight the match
- const el=document.querySelector(`.item[data-reg="${reg}"]`);
- if(!el)return;
- el.classList.add('scan-hit');
- // Smooth scroll into view
- el.scrollIntoView({behavior:'smooth',block:'center'});
- // Auto-remove highlight after 3 seconds
- setTimeout(()=>el.classList.remove('scan-hit'),3500);
+
+async function restore(file){
+  try{
+    let d=JSON.parse(await file.text());
+    if(!Array.isArray(d.items))throw Error('Invalid layout');
+    items=d.items;
+    $('regBox').value=d.listText||'';
+    saveData();
+    render();
+    $('restoreModal').classList.remove('show');
+    notify('Layout restored — '+items.length+' records','found');
+  }catch(e){
+    notify('Restore failed — invalid file','bad');
+  }
 }
-async function scanLoop(){
- if(!scanning)return;
- await scanFrame(false);
- if(scanning)setTimeout(scanLoop,700);
+
+function setTheme(m){
+  document.documentElement.setAttribute('data-theme',m);
+  $('themeBtn').textContent=m==='light'?'☀':'☾';
+  localStorage.setItem(THEME_KEY,m);
 }
-window.addEventListener('beforeunload',stopCamera);
-load();
+
+$('themeBtn').onclick=()=>setTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
+$('processBtn').onclick=()=>{
+  let t=$('regBox').value;
+  if(!t.trim())return notify('Paste a list first','bad');
+  items=buildList(t);
+  if(!items.length)return notify('No valid registrations found','bad');
+  saveData();
+  render();
+  notify('Board rebuilt — '+items.length+' registrations','found');
+};
+$('removeBtn').onclick=removeMarkedPending;
+$('completedBtn').onclick=moveMarkedToCompleted;
+$('openScanBtn').onclick=$('floatingScanBtn').onclick=startScanner;
+$('closeScan').onclick=stopScanner;
+$('torchBtn').onclick=toggleTorch;
+$('clearBtn').onclick=()=>{
+  if(confirm('Reset ALL progress?')){
+    localStorage.removeItem(SAVE_KEY);
+    items=[];
+    $('regBox').value='';
+    render();
+    notify('All data cleared');
+  }
+};
+$('exportBtn').onclick=()=>$('exportModal').classList.add('show');
+$('exportClose').onclick=()=>$('exportModal').classList.remove('show');
+document.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>exportText(b.dataset.type));
+$('saveLayoutBtn').onclick=saveFile;
+$('restoreLayoutBtn').onclick=()=>$('restoreModal').classList.add('show');
+$('restoreClose').onclick=()=>$('restoreModal').classList.remove('show');
+$('doRestoreBtn').onclick=()=>{
+  let f=$('restoreFileInput').files[0];
+  if(f)restore(f);
+  else notify('Select a file first','bad');
+};
+
+window.toggleRemoveMark=toggleRemoveMark;
+window.toggleCompleteMark=toggleCompleteMark;
+window.restoreToPending=restoreToPending;
+window.updateRef=updateRef;
+window.updateNote=updateNote;
+
+window.addEventListener('load',()=>{
+  let t=localStorage.getItem(THEME_KEY);
+  if(t)setTheme(t);
+  loadData();
+  render();
+});
 </script>
 </body>
 </html>

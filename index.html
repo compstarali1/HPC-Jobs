@@ -309,6 +309,30 @@ $('restoreBtn').onclick=()=>{const i=document.createElement('input');i.type='fil
       [...found,...pending,...completed].forEach(r=>fresh.add(r));$('moreModal').classList.remove('show');render();toast('⬆ Restored')}catch{toast('⚠️ Invalid file')}};rd.readAsText(f)};i.click()};
 $('resetBtn').onclick=async()=>{if(await ask('Reset ALL data? This cannot be undone.')){found=[];pending=[];completed=[];notes={};checkedItems={};ta.value='';$('moreModal').classList.remove('show');render();toast('♻️ All data reset')}};
 
+/* ---------- sounds ---------- */
+let ac=null,lastSnd=0,lastKey='';
+function audio(){
+  if(!ac){const C=window.AudioContext||window.webkitAudioContext;if(C)ac=new C()}
+  if(ac&&ac.state==='suspended')ac.resume();return ac}
+function tone(f,t0,d,type='sine',v=.22,f2){
+  const a=audio();if(!a)return;
+  const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;
+  o.type=type;o.frequency.setValueAtTime(f,t);
+  if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(v,t+.015);
+  g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.02)}
+const SND={
+  ok(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>{tone(f,i*.09,.35,'sine',.22);tone(f*2,i*.09,.25,'triangle',.05)})},
+  dup(){tone(880,0,.12,'square',.1);tone(880,.18,.12,'square',.1)},
+  bad(){tone(220,0,.35,'sawtooth',.16,110);tone(165,.2,.4,'sawtooth',.16,80)}};
+function sound(k,key){
+  const n=performance.now();
+  if(k!=='ok'&&((key===lastKey&&n-lastSnd<2500)||n-lastSnd<800))return;
+  lastKey=key;lastSnd=n;SND[k]();
+  if(k!=='ok'&&navigator.vibrate)navigator.vibrate(k==='dup'?[40,60,40]:[120])}
+
 /* ---------- letterbox scanner ---------- */
 const FIX=s=>s.toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/[OQ]/g,'0').replace(/I/g,'1').replace(/S/g,'5').replace(/Z/g,'2').replace(/B/g,'8');
 function find(list,t,maxD){ /* best sliding-window match of a list reg inside OCR text */
@@ -348,18 +372,23 @@ async function loop(my){
             const m=find(pending,t,1);
             if(m&&(m.d===0||(hits[m.r]=(hits[m.r]||0)+1)>=2)){await onMatch(m.r);hits={}}
             else if(m){setStt(`Checking ${m.r}…`)}
-            else{hits={};const o=find([...found,...completed],t,0);
-              setStt(o?`${o.r} already scanned`:`Not on list: ${text.trim().slice(0,14)}`)}}}
+            else{
+              hits={};
+              const o=find([...found,...completed],t,0);
+              if(o){setStt(`${o.r} already scanned`);sound('dup',o.r)}
+              else{setStt(`Not on list: ${text.trim().slice(0,14)}`);sound('bad','bad')}
+            }}}
       }catch(e){console.warn('OCR error',e);setStt('Reader error — retrying');await new Promise(r=>setTimeout(r,1500))}
       busy=false}
     await new Promise(r=>setTimeout(r,120))}}
 async function onMatch(reg){
   pending=pending.filter(r=>r!==reg);delete checkedItems[reg];if(!found.includes(reg))found.push(reg);fresh.add(reg);
   const s=$('strip');s.dataset.hit=reg;s.classList.add('hit');setStt(`${reg} matched ✓`);
-  const r=s.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,22);navigator.vibrate&&navigator.vibrate(70);
+  const r=s.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,22);navigator.vibrate&&navigator.vibrate(70);sound('ok','ok');
   toast(`✅ ${reg} found`);render();
   await new Promise(r=>setTimeout(r,1100));s.classList.remove('hit');setStt('Aim at next plate…')}
 async function openScan(){
+  audio();
   const my=++session;active=true;$('lb').classList.add('show');$('fab').classList.add('open');$('fabIcon').textContent='✕';setStt('Starting camera…');
   if(!navigator.mediaDevices?.getUserMedia){toast('⚠️ Camera needs HTTPS or a local file');return closeScan()}
   try{
